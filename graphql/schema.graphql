@@ -1,0 +1,12 @@
+type Item {
+    uuid: String!
+    name: String!
+    departure: String!
+    destination: String!
+    time: String!
+    capacity: Int!
+}
+
+type Mutation {
+    putItem(uuid: String!, name: String!, departure: String!, destination: String!, time: String!, capacity: Int!): Item!
+}
