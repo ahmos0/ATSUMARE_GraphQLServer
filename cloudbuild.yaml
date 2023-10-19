@@ -6,3 +6,7 @@ steps:
 # ビルド
 - name: 'golang'
   args: ['go', 'build', '-o', 'my-app', '.']
+
+# Cloud Loggingのみにログを出力する
+options:
+  logging: CLOUD_LOGGING_ONLY
