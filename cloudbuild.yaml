@@ -1,0 +1,8 @@
+steps:
+# Goモジュールを取得
+- name: 'golang'
+  args: ['go', 'mod', 'download']
+
+# ビルド
+- name: 'golang'
+  args: ['go', 'build', '-o', 'my-app', '.']
