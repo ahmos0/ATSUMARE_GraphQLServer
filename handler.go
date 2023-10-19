@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -37,29 +38,14 @@ var itemType = graphql.NewObject(
 	},
 )
 
-// 仮実装
 var queryType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Query",
 		Fields: graphql.Fields{
-			"item": &graphql.Field{
-				Type: itemType,
-				Args: graphql.FieldConfigArgument{
-					"uuid": &graphql.ArgumentConfig{Type: graphql.String},
-				},
+			"allItems": &graphql.Field{
+				Type: graphql.NewList(itemType),
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-					uuid, isOK := params.Args["uuid"].(string)
-					if !isOK {
-						return nil, fmt.Errorf("uuid is required")
-					}
-					return map[string]interface{}{
-						"uuid":        uuid,
-						"name":        "Sample Name",
-						"departure":   "Sample Departure",
-						"destination": "Sample Destination",
-						"time":        "Sample Time",
-						"capacity":    5,
-					}, nil
+					return getAllItems()
 				},
 			},
 		},
@@ -88,7 +74,6 @@ var mutationType = graphql.NewObject(
 					time, _ := params.Args["time"].(string)
 					capacity, _ := params.Args["capacity"].(int)
 
-					// クライアントから提供されたデータをDynamoDBに保存
 					item, err := saveItem(uuid, name, departure, destination, time, capacity)
 					if err != nil {
 						return nil, err
@@ -100,6 +85,51 @@ var mutationType = graphql.NewObject(
 		},
 	},
 )
+
+func getAllItems() ([]Item, error) {
+	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
+	secretKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	sess, err := session.NewSession(&aws.Config{
+		Region:      aws.String("ap-northeast-1"),
+		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
+	})
+	if err != nil {
+		log.Printf("Error creating AWS session: %v", err)
+		return nil, err
+	}
+
+	svc := dynamodb.New(sess)
+	input := &dynamodb.ScanInput{
+		TableName: aws.String("DepatureManageTable"),
+	}
+
+	result, err := svc.Scan(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []Item
+	for _, dbItem := range result.Items {
+		capacity, err := strconv.Atoi(*dbItem["Capacity"].N)
+		if err != nil {
+			return nil, fmt.Errorf("Error converting capacity to int: %v", err)
+		}
+
+		item := Item{
+			UUID:        *dbItem["uuid"].S,
+			Name:        *dbItem["name"].S,
+			Departure:   *dbItem["Departure"].S,
+			Destination: *dbItem["Destination"].S,
+			Time:        *dbItem["Time"].S,
+			Capacity:    capacity,
+		}
+
+		items = append(items, item)
+	}
+
+	return items, nil
+}
 
 func saveItem(uuid, name, departure, destination, time string, capacity int) (*Item, error) {
 	accessKey := os.Getenv("AWS_ACCESS_KEY_ID")
