@@ -47,16 +47,16 @@ func main() {
 	fmt.Printf("Response: %+v\n", result)*/
 
 	query := `
-		{
-			allItems {
-				uuid
-				name
-				departure
-				destination
-				time
-				capacity
-			}
+	{
+		allItems {
+		  uuid
+		  name
+		  departure
+		  destination
+		  time
+		  capacity
 		}
+	  }
 	`
 
 	requestBody, err := json.Marshal(map[string]string{"query": query})
