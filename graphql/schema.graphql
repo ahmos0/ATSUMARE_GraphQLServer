@@ -5,10 +5,11 @@ type Item {
     destination: String!
     time: String!
     capacity: Int!
+    passenger: Int!
 }
 
 type Mutation {
-    putItem(uuid: String!, name: String!, departure: String!, destination: String!, time: String!, capacity: Int!): Item!
+    putItem(uuid: String!, name: String!, departure: String!, destination: String!, time: String!, capacity: Int!, passenger: Int!): Item!
 }
 
 type Query {

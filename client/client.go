@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	url := "https://graphqlserver-k5fklwkbdq-an.a.run.app/graphql"
+	url := "https://dyanamodbconnectmobile-k5fklwkbdq-an.a.run.app/graphql"
 	//url := "http://localhost:8080/graphql"
 	/*mutation := `
 		mutation {
