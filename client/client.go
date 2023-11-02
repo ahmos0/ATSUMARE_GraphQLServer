@@ -14,24 +14,30 @@ import (
 func main() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		fmt.Printf("Error reading env file: %v", err)
+		log.Fatalf("Error reading env file: %v", err)
 	}
 	url := os.Getenv("ENDPOINT")
 
-	query := `
-	{
-		allItems {
-		  uuid
-		  name
-		  departure
-		  destination
-		  time
-		  capacity
+	mutation := `
+	mutation {
+		putItem(
+			uuid: "duwa-1700ーmock",
+			name: "New Item",
+			departure: "Tokyo",
+			destination: "Osaka",
+			time: "10:00",
+			capacity: 100,
+			passenger: 0,
+        	passengerNames: ["hamada"],
+			passengerComments: ["こんにちわ"],
+		) {
+			uuid
+			name
 		}
-	  }
-	`
+	}
+`
 
-	requestBody, err := json.Marshal(map[string]string{"query": query})
+	requestBody, err := json.Marshal(map[string]string{"query": mutation})
 	if err != nil {
 		log.Fatalf("Error creating request body: %v", err)
 	}

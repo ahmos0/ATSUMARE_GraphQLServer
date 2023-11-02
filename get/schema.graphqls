@@ -1,0 +1,140 @@
+{
+	"data": null,
+	"errors": [
+		{
+			"message": "Unknown fragment \"InputValue\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 130
+				}
+			]
+		},
+		{
+			"message": "Unknown fragment \"TypeRef\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 153
+				}
+			]
+		},
+		{
+			"message": "Unknown fragment \"InputValue\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 213
+				}
+			]
+		},
+		{
+			"message": "Unknown fragment \"TypeRef\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 242
+				}
+			]
+		},
+		{
+			"message": "Unknown fragment \"TypeRef\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 359
+				}
+			]
+		},
+		{
+			"message": "Unknown fragment \"InputValue\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 421
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"fragment\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 438
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"InputValue\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 447
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"on\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 458
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"__InputValue\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 461
+				}
+			]
+		},
+		{
+			"message": "Unknown fragment \"TypeRef\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 503
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"fragment\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 528
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"TypeRef\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 537
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"on\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 545
+				}
+			]
+		},
+		{
+			"message": "Cannot query field \"__Type\" on type \"Query\".",
+			"locations": [
+				{
+					"line": 1,
+					"column": 548
+				}
+			]
+		}
+	]
+}
