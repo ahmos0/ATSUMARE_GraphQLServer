@@ -1,7 +1,6 @@
 package database
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -18,55 +17,80 @@ import (
 func GetAllItems() ([]models.Item, error) {
 	svc, err := createDynamoDBService()
 	if err != nil {
-		log.Fatalf("Error creating DynamoDB service: %v", err)
+		return nil, fmt.Errorf("Error creating DynamoDB service: %v", err)
 	}
+
 	input := &dynamodb.ScanInput{
 		TableName: aws.String("DepatureManageTable"),
 	}
 
 	result, err := svc.Scan(input)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to scan DynamoDB: %v", err)
 	}
 
+	fmt.Printf("Found %d items in the table.\n", len(result.Items))
 	var items []models.Item
 	for _, dbItem := range result.Items {
-		capacity, err := strconv.Atoi(*dbItem["Capacity"].N)
-		if err != nil {
-			return nil, fmt.Errorf("Error converting capacity to int: %v", err)
+		fmt.Println("Processing an item...")
+		item := models.Item{}
+
+		// Handle string and numeric attributes
+		if dbItem["uuid"] != nil {
+			item.UUID = *dbItem["uuid"].S
 		}
-		passenger, err := strconv.Atoi(*dbItem["Passenger"].N)
-		if err != nil {
-			return nil, fmt.Errorf("Error converting capacity to int: %v", err)
+		if dbItem["name"] != nil {
+			item.Name = *dbItem["name"].S
+		}
+		if dbItem["Departure"] != nil {
+			item.Departure = *dbItem["Departure"].S
+		}
+		if dbItem["Destination"] != nil {
+			item.Destination = *dbItem["Destination"].S
+		}
+		if dbItem["Time"] != nil {
+			item.Time = *dbItem["Time"].S
+		}
+		if dbItem["Capacity"] != nil {
+			item.Capacity, err = strconv.Atoi(*dbItem["Capacity"].N)
+			if err != nil {
+				return nil, fmt.Errorf("Error converting Capacity to int: %v", err)
+			}
+		}
+		if dbItem["Passenger"] != nil {
+			item.Passenger, err = strconv.Atoi(*dbItem["Passenger"].N)
+			if err != nil {
+				return nil, fmt.Errorf("Error converting Passenger to int: %v", err)
+			}
 		}
 
-		var passengers []models.PassengerModel
-		err = json.Unmarshal([]byte(*dbItem["Passengers"].S), &passengers)
-		if err != nil {
-			return nil, fmt.Errorf("Error decoding passengers: %v", err)
-		}
-
-		item := models.Item{
-			UUID:        *dbItem["uuid"].S,
-			Name:        *dbItem["name"].S,
-			Departure:   *dbItem["Departure"].S,
-			Destination: *dbItem["Destination"].S,
-			Time:        *dbItem["Time"].S,
-			Capacity:    capacity,
-			Passenger:   passenger,
-			Passengers:  passengers,
+		// Handle the Passengers attribute
+		if dbItem["Passengers"] != nil && dbItem["Passengers"].L != nil {
+			for _, p := range dbItem["Passengers"].L {
+				passenger := models.PassengerModel{}
+				if cmt, ok := p.M["Comment"]; ok && cmt.S != nil {
+					passenger.Comment = *cmt.S
+				}
+				if nmlst, ok := p.M["Namelist"]; ok && nmlst.S != nil {
+					passenger.Namelist = *nmlst.S
+				}
+				item.Passengers = append(item.Passengers, passenger)
+			}
 		}
 
 		items = append(items, item)
+	}
+	for i, item := range result.Items {
+		fmt.Printf("Item %d: %v\n", i, item)
 	}
 
 	return items, nil
 }
 
-func UpdatePassenger(uuid string, name string, namelist string, comment string) (*models.Item, error) {
+func UpdatePassenger(uuid string, name string, passengers []models.PassengerModel) (*models.Item, error) {
 	svc, err := createDynamoDBService()
 	if err != nil {
-		log.Fatalf("Error creating DynamoDB service: %v", err)
+		return nil, fmt.Errorf("error creating DynamoDB service: %v", err)
 	}
 
 	getItemInput := &dynamodb.GetItemInput{
@@ -76,13 +100,22 @@ func UpdatePassenger(uuid string, name string, namelist string, comment string) 
 			"name": {S: aws.String(name)},
 		},
 	}
+
 	getItemOutput, err := svc.GetItem(getItemInput)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error retrieving item: %v", err)
 	}
 
-	passenger, _ := strconv.Atoi(*getItemOutput.Item["Passenger"].N)
-	passenger++
+	passengerCount, _ := strconv.Atoi(*getItemOutput.Item["Passenger"].N)
+	passengerCount += len(passengers)
+
+	dbPassengers := make([]*dynamodb.AttributeValue, len(passengers))
+	for i, passenger := range passengers {
+		dbPassengers[i] = &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
+			"Namelist": {S: aws.String(passenger.Namelist)},
+			"Comment":  {S: aws.String(passenger.Comment)},
+		}}
+	}
 
 	updateInput := &dynamodb.UpdateItemInput{
 		TableName: aws.String("DepatureManageTable"),
@@ -90,29 +123,25 @@ func UpdatePassenger(uuid string, name string, namelist string, comment string) 
 			"uuid": {S: aws.String(uuid)},
 			"name": {S: aws.String(name)},
 		},
-		UpdateExpression: aws.String("SET Passenger = :p, Namelist = :nl, Comment = :c"),
+		UpdateExpression: aws.String("SET Passenger = :p, Passengers = list_append(Passengers, :new_passengers)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":p":  {N: aws.String(fmt.Sprintf("%d", passenger))},
-			":nl": {S: aws.String(namelist)},
-			":c":  {S: aws.String(comment)},
+			":p":              {N: aws.String(fmt.Sprintf("%d", passengerCount))},
+			":new_passengers": {L: dbPassengers},
 		},
 	}
 
 	_, err = svc.UpdateItem(updateInput)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error updating item: %v", err)
 	}
 
 	updatedItem := &models.Item{
-		UUID:      uuid,
-		Passenger: passenger,
-		Passengers: []models.PassengerModel{
-			{
-				Namelist: namelist,
-				Comment:  comment,
-			},
-		},
+		UUID:       uuid,
+		Name:       name,
+		Passenger:  passengerCount,
+		Passengers: passengers,
 	}
+
 	return updatedItem, nil
 }
 
@@ -122,7 +151,6 @@ func SaveItem(uuid, name, departure, destination, time string, capacity int, pas
 		log.Fatalf("Error creating DynamoDB service: %v", err)
 	}
 
-	//debug
 	log.Printf("UUID: %s", uuid)
 	log.Printf("Name: %s", name)
 	log.Printf("Departure: %s", departure)

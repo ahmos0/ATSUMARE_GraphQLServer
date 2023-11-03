@@ -11,13 +11,27 @@ var itemType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Item",
 		Fields: graphql.Fields{
-			"uuid":        &graphql.Field{Type: graphql.String},
-			"name":        &graphql.Field{Type: graphql.String},
-			"departure":   &graphql.Field{Type: graphql.String},
-			"destination": &graphql.Field{Type: graphql.String},
-			"time":        &graphql.Field{Type: graphql.String},
-			"capacity":    &graphql.Field{Type: graphql.Int},
-			"passenger":   &graphql.Field{Type: graphql.Int},
+			"uuid": &graphql.Field{
+				Type: graphql.String,
+			},
+			"name": &graphql.Field{
+				Type: graphql.String,
+			},
+			"departure": &graphql.Field{
+				Type: graphql.String,
+			},
+			"destination": &graphql.Field{
+				Type: graphql.String,
+			},
+			"time": &graphql.Field{
+				Type: graphql.String,
+			},
+			"capacity": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"passenger": &graphql.Field{
+				Type: graphql.Int,
+			},
 			"passengers": &graphql.Field{
 				Type: graphql.NewList(passengerType),
 			},
@@ -29,10 +43,10 @@ var passengerType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Passenger",
 		Fields: graphql.Fields{
-			"Namelist": &graphql.Field{
+			"namelist": &graphql.Field{
 				Type: graphql.String,
 			},
-			"Comment": &graphql.Field{
+			"comment": &graphql.Field{
 				Type: graphql.String,
 			},
 		},
@@ -53,6 +67,20 @@ var queryType = graphql.NewObject(
 	},
 )
 
+var passengerInputType = graphql.NewInputObject(
+	graphql.InputObjectConfig{
+		Name: "PassengerInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"namelist": &graphql.InputObjectFieldConfig{
+				Type: graphql.String,
+			},
+			"comment": &graphql.InputObjectFieldConfig{
+				Type: graphql.String,
+			},
+		},
+	},
+)
+
 var mutationType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Mutation",
@@ -60,15 +88,14 @@ var mutationType = graphql.NewObject(
 			"putItem": &graphql.Field{
 				Type: itemType,
 				Args: graphql.FieldConfigArgument{
-					"uuid":              &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"name":              &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"departure":         &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"destination":       &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"time":              &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"capacity":          &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
-					"passenger":         &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
-					"passengerNames":    &graphql.ArgumentConfig{Type: graphql.NewList(graphql.String)},
-					"passengerComments": &graphql.ArgumentConfig{Type: graphql.NewList(graphql.String)},
+					"uuid":        &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"name":        &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"departure":   &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"destination": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"time":        &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"capacity":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
+					"passenger":   &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.Int)},
+					"passengers":  &graphql.ArgumentConfig{Type: graphql.NewList(passengerInputType)},
 				},
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 					uuid, _ := params.Args["uuid"].(string)
@@ -79,22 +106,21 @@ var mutationType = graphql.NewObject(
 					capacity, _ := params.Args["capacity"].(int)
 					passenger, _ := params.Args["passenger"].(int)
 
-					passengerNames, ok := params.Args["passengerNames"].([]interface{})
+					passengerInputs, ok := params.Args["passengers"].([]interface{})
 					if !ok {
-						return nil, errors.New("passengerNames must be an array of strings")
-					}
-
-					passengerComments, ok := params.Args["passengerComments"].([]interface{})
-					if !ok {
-						return nil, errors.New("passengerComments must be an array of strings")
+						return nil, errors.New("passengers must be an array of PassengerInput")
 					}
 
 					var passengers []models.PassengerModel
-					for i := range passengerNames {
-						name, ok1 := passengerNames[i].(string)
-						comment, ok2 := passengerComments[i].(string)
+					for _, p := range passengerInputs {
+						input, ok := p.(map[string]interface{})
+						if !ok {
+							return nil, errors.New("Error converting passenger input")
+						}
+						name, ok1 := input["namelist"].(string)
+						comment, ok2 := input["comment"].(string)
 						if !ok1 || !ok2 {
-							return nil, errors.New("Error converting to string")
+							return nil, errors.New("Error extracting name and comment from passenger input")
 						}
 						passenger := models.PassengerModel{
 							Namelist: name,
@@ -111,20 +137,31 @@ var mutationType = graphql.NewObject(
 					return item, nil
 				},
 			},
+
 			"incrementPassenger": &graphql.Field{
 				Type: itemType,
 				Args: graphql.FieldConfigArgument{
-					"uuid":     &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"name":     &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
-					"namelist": &graphql.ArgumentConfig{Type: graphql.String},
-					"comment":  &graphql.ArgumentConfig{Type: graphql.String},
+					"uuid": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"name": &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+					"passengers": &graphql.ArgumentConfig{
+						Type: graphql.NewList(passengerInputType), // passengerInputTypeはPassengerInputのGraphQL型です
+					},
 				},
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 					uuid, _ := params.Args["uuid"].(string)
 					name, _ := params.Args["name"].(string)
-					namelist, _ := params.Args["namelist"].(string)
-					comment, _ := params.Args["comment"].(string)
-					return updatePassenger(uuid, name, namelist, comment)
+					passengers := make([]models.PassengerModel, 0)
+					if ps, ok := params.Args["passengers"].([]interface{}); ok {
+						for _, p := range ps {
+							if pmap, ok := p.(map[string]interface{}); ok {
+								passengers = append(passengers, models.PassengerModel{
+									Namelist: pmap["namelist"].(string),
+									Comment:  pmap["comment"].(string),
+								})
+							}
+						}
+					}
+					return updatePassenger(uuid, name, passengers)
 				},
 			},
 		},

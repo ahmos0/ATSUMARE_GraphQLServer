@@ -9,8 +9,8 @@ func getAllItems() ([]models.Item, error) {
 	return database.GetAllItems()
 }
 
-func updatePassenger(uuid string, name string, namelist string, comment string) (*models.Item, error) {
-	return database.UpdatePassenger(uuid, name, namelist, comment)
+func updatePassenger(uuid string, name string, passengers []models.PassengerModel) (*models.Item, error) {
+	return database.UpdatePassenger(uuid, name, passengers)
 }
 
 func saveItem(uuid, name, departure, destination, time string, capacity int, passenger int, passengers []models.PassengerModel) (*models.Item, error) {

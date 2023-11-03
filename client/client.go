@@ -18,26 +18,24 @@ func main() {
 	}
 	url := os.Getenv("ENDPOINT")
 
-	mutation := `
-	mutation {
-		putItem(
-			uuid: "duwa-1700ーmock",
-			name: "New Item",
-			departure: "Tokyo",
-			destination: "Osaka",
-			time: "10:00",
-			capacity: 100,
-			passenger: 0,
-        	passengerNames: ["hamada"],
-			passengerComments: ["こんにちわ"],
-		) {
+	query := `
+	query GetAllItems {
+		allItems {
 			uuid
 			name
+			departure
+			destination
+			time
+			capacity
+			passenger
+			passengers {
+				namelist
+				comment
+			}
 		}
-	}
-`
+	}`
 
-	requestBody, err := json.Marshal(map[string]string{"query": mutation})
+	requestBody, err := json.Marshal(map[string]string{"query": query})
 	if err != nil {
 		log.Fatalf("Error creating request body: %v", err)
 	}
@@ -48,11 +46,28 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
+	var result struct {
+		Data struct {
+			AllItems []struct {
+				UUID        string `json:"uuid"`
+				Name        string `json:"name"`
+				Departure   string `json:"departure"`
+				Destination string `json:"destination"`
+				Time        string `json:"time"`
+				Capacity    int    `json:"capacity"`
+				Passenger   int    `json:"passenger"`
+				Passengers  []struct {
+					Namelist string `json:"namelist"`
+					Comment  string `json:"comment"`
+				} `json:"passengers"`
+			} `json:"allItems"`
+		} `json:"data"`
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		log.Fatalf("Error decoding response: %v", err)
 	}
 
-	fmt.Printf("Response: %+v\n", result)
+	fmt.Printf("Response: %+v\n", result.Data.AllItems)
 }
