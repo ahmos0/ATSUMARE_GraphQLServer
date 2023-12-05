@@ -6,6 +6,7 @@ type Item {
     time: String!
     capacity: Int!
     passenger: Int!
+    passengers: 
 }
 
 type Mutation {
@@ -15,3 +16,4 @@ type Mutation {
 type Query {
     allItems: [Item!]!
 }
+

@@ -14,22 +14,26 @@ import (
 func main() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		fmt.Printf("Error reading env file: %v", err)
+		log.Fatalf("Error reading env file: %v", err)
 	}
 	url := os.Getenv("ENDPOINT")
 
 	query := `
-	{
+	query GetAllItems {
 		allItems {
-		  uuid
-		  name
-		  departure
-		  destination
-		  time
-		  capacity
+			uuid
+			name
+			departure
+			destination
+			time
+			capacity
+			passenger
+			passengers {
+				namelist
+				comment
+			}
 		}
-	  }
-	`
+	}`
 
 	requestBody, err := json.Marshal(map[string]string{"query": query})
 	if err != nil {
@@ -42,11 +46,28 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
+	var result struct {
+		Data struct {
+			AllItems []struct {
+				UUID        string `json:"uuid"`
+				Name        string `json:"name"`
+				Departure   string `json:"departure"`
+				Destination string `json:"destination"`
+				Time        string `json:"time"`
+				Capacity    int    `json:"capacity"`
+				Passenger   int    `json:"passenger"`
+				Passengers  []struct {
+					Namelist string `json:"namelist"`
+					Comment  string `json:"comment"`
+				} `json:"passengers"`
+			} `json:"allItems"`
+		} `json:"data"`
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		log.Fatalf("Error decoding response: %v", err)
 	}
 
-	fmt.Printf("Response: %+v\n", result)
+	fmt.Printf("Response: %+v\n", result.Data.AllItems)
 }
